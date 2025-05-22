@@ -4,5 +4,6 @@ Programmed utilizing Djikstra's Algorithm
 
 ```
 /pathfind <x> <y> <z>
-/setpathfind <djikstra|a*>
+/setpathfind <djikstra | a*> # Set whether to use Djikstra's or A*'s
 ```
+
