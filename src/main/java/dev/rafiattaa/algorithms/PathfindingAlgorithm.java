@@ -46,15 +46,15 @@ public class PathfindingAlgorithm {
                 double movementCost = getMovementCost(current.pos, neighbor);
                 if (movementCost == Double.MAX_VALUE) continue; // Impassable
 
-                double tentativeGCost = current.gCost + movementCost;
+                double tentativeGCost = current.gCost + movementCost; // calculate cost of neighbour
 
-                PathNode neighborNode = allNodes.get(neighbor);
+                PathNode neighborNode = allNodes.get(neighbor);  // we have never encountered this neighbour, add to explore list
                 if (neighborNode == null) {
                     neighborNode = new PathNode(neighbor, tentativeGCost, heuristic(neighbor, target), current);
                     allNodes.put(neighbor, neighborNode);
                     openSet.add(neighborNode);
-                } else if (tentativeGCost < neighborNode.gCost) {
-                    openSet.remove(neighborNode);
+                } else if (tentativeGCost < neighborNode.gCost) { // we've been to this neighbour before but we found a better route to reach it
+                    openSet.remove(neighborNode); // remove and re-add so the queue can re-sort it
                     neighborNode.gCost = tentativeGCost;
                     neighborNode.fCost = tentativeGCost + heuristic(neighbor, target);
                     neighborNode.parent = current;

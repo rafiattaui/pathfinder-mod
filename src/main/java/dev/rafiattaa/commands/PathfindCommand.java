@@ -8,20 +8,28 @@ import net.minecraft.command.argument.Vec3ArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.List;
+import java.util.Objects;
 
 
 public class PathfindCommand {
-    private int pathfindAlgorithm = 2; // 1 = Djikstra, 2 = A-Star
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
-        dispatcher.register(CommandManager.literal("pathfind"). // /pathfind
-                then(CommandManager.argument("destination", Vec3ArgumentType.vec3()). // <x> <y> <z>
-                        executes(PathfindCommand::executePathfind)));
+        dispatcher.register(CommandManager.literal("pathfind")
+                // /pathfind <x> <y> <z>
+                .then(CommandManager.argument("destination", Vec3ArgumentType.vec3())
+                        .executes(PathfindCommand::executePathfind)
+                )
+
+                // /pathfind set <value>
+                .then(CommandManager.literal("clear").executes(PathVisualizer::clearPath)
+                )
+        );
     }
 
     private static int executePathfind(CommandContext<ServerCommandSource> context) {
@@ -40,6 +48,7 @@ public class PathfindCommand {
         BlockPos start = player.getBlockPos();
         BlockPos target = new BlockPos(targetX, targetY, targetZ);
         World world = player.getWorld();
+        ServerWorld serverWorld = Objects.requireNonNull(world.getServer()).getWorld(World.OVERWORLD);
 
         // Check if target is too far
         if (start.getSquaredDistance(target) > 10000) { // 100 block limit
@@ -56,7 +65,7 @@ public class PathfindCommand {
         }
 
         // Visualize the path
-        //PathVisualizer.showPath(world, path, player);
+        PathVisualizer.showPath(serverWorld, world, path, player);
 
         source.sendFeedback(() -> Text.literal("Path found! Distance: " + path.size() + " blocks"), false);
         return 1;
