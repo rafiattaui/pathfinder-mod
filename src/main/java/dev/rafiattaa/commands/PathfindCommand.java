@@ -17,12 +17,12 @@ import static dev.rafiattaa.entities.GuideManager.spawnGuide;
 import java.util.Objects;
 
 public class PathfindCommand {
-    private int pathfindAlgorithm = 1;
+    private int pathfindAlgorithm = 1; // 1 = Djikstra, 2 = A-Star
 
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
-        dispatcher.register(CommandManager.literal("pathfind").
-                then(CommandManager.argument("destination", Vec3ArgumentType.vec3()).
+        dispatcher.register(CommandManager.literal("pathfind"). // /pathfind
+                then(CommandManager.argument("destination", Vec3ArgumentType.vec3()). // <x> <y> <z>
                         executes(PathfindCommand::run)));
     }
 
@@ -42,4 +42,11 @@ public class PathfindCommand {
         return 1;
     }
 
+    public int getPathfindAlgorithm() {
+        return pathfindAlgorithm;
+    }
+
+    public void setPathfindAlgorithm(int pathfindAlgorithm) {
+        this.pathfindAlgorithm = pathfindAlgorithm;
+    }
 }

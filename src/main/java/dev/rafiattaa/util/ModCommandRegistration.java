@@ -9,6 +9,6 @@ public class ModCommandRegistration {
 
     public static void registerCommands() {
         CommandRegistrationCallback.EVENT.register(PathfindCommand::register);
-        ServerTickEvents.END_SERVER_TICK.register(GuideManager::spawnParticles);
+        ServerTickEvents.END_SERVER_TICK.register(GuideManager::spawnParticles); // At the end of every server tick,
     }
 }
