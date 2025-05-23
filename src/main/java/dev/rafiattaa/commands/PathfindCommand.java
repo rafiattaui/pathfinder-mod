@@ -17,6 +17,8 @@ import static dev.rafiattaa.entities.GuideManager.spawnGuide;
 import java.util.Objects;
 
 public class PathfindCommand {
+    private int pathfindAlgorithm = 1;
+
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(CommandManager.literal("pathfind").
