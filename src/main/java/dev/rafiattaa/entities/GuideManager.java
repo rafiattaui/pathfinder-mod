@@ -41,4 +41,8 @@ public class GuideManager {
             world.spawnParticles(ParticleTypes.END_ROD, guide.getX(), guide.getY() + 0.5, guide.getZ(), 10, 0.5, 0.5, 0.5, 0.05);
         });
     }
+
+    public static void removeGuides(MinecraftServer server, World world){
+        guideEntities.forEach(Entity::kill);
+    }
 }

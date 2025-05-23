@@ -2,51 +2,63 @@ package dev.rafiattaa.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import dev.rafiattaa.algorithms.PathfindingAlgorithm;
 import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.argument.PosArgument;
 import net.minecraft.command.argument.Vec3ArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import static dev.rafiattaa.entities.GuideManager.spawnGuide;
-import java.util.Objects;
+import net.minecraft.world.World;
+
+import java.util.List;
+
 
 public class PathfindCommand {
-    private int pathfindAlgorithm = 1; // 1 = Djikstra, 2 = A-Star
-
+    private int pathfindAlgorithm = 2; // 1 = Djikstra, 2 = A-Star
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(CommandManager.literal("pathfind"). // /pathfind
                 then(CommandManager.argument("destination", Vec3ArgumentType.vec3()). // <x> <y> <z>
-                        executes(PathfindCommand::run)));
+                        executes(PathfindCommand::executePathfind)));
     }
 
-    private static int run(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        PosArgument destination = context.getArgument("destination", PosArgument.class);
-        Vec3d destinationPos = destination.toAbsolutePos(context.getSource());
-        ServerPlayerEntity player = context.getSource().getPlayer();
-        assert player != null;
-        ServerWorld world = player.getServerWorld();
+    private static int executePathfind(CommandContext<ServerCommandSource> context) {
+        ServerCommandSource source = context.getSource();
+        ServerPlayerEntity player = source.getPlayer();
 
-        BlockPos playerPos = Objects.requireNonNull(player.getBlockPos());
-        context.getSource().sendFeedback(()-> Text.literal("You are at " + playerPos.getX() + ", " + playerPos.getY() + ", " + playerPos.getZ() + "."), true);
-        context.getSource().sendFeedback(()-> Text.literal("Pathfinding to " + destinationPos.getX() + ", " + destinationPos.getY() + ", " + destinationPos.getZ() + "."), true);
+        if (player == null) {
+            source.sendFeedback(() -> Text.literal("Command must be run by a player"), false);
+            return 0;
+        }
 
-        spawnGuide((int) destinationPos.getX(), (int) destinationPos.getY(), (int) destinationPos.getZ(), world);
+        int targetX = (int) Vec3ArgumentType.getVec3(context, "destination").getX();
+        int targetY = (int) Vec3ArgumentType.getVec3(context, "destination").getY();
+        int targetZ = (int) Vec3ArgumentType.getVec3(context, "destination").getZ();
 
+        BlockPos start = player.getBlockPos();
+        BlockPos target = new BlockPos(targetX, targetY, targetZ);
+        World world = player.getWorld();
+
+        // Check if target is too far
+        if (start.getSquaredDistance(target) > 10000) { // 100 block limit
+            source.sendFeedback(() -> Text.literal("Target too far! Maximum distance is 100 blocks."), false);
+            return 0;
+        }
+
+        PathfindingAlgorithm pathfinder = new PathfindingAlgorithm(world);
+        List<BlockPos> path = pathfinder.findPath(start, target);
+
+        if (path.isEmpty()) {
+            source.sendFeedback(() -> Text.literal("No path found to target location!"), false);
+            return 0;
+        }
+
+        // Visualize the path
+        //PathVisualizer.showPath(world, path, player);
+
+        source.sendFeedback(() -> Text.literal("Path found! Distance: " + path.size() + " blocks"), false);
         return 1;
-    }
-
-    public int getPathfindAlgorithm() {
-        return pathfindAlgorithm;
-    }
-
-    public void setPathfindAlgorithm(int pathfindAlgorithm) {
-        this.pathfindAlgorithm = pathfindAlgorithm;
     }
 }
