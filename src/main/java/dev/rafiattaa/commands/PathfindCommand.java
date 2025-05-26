@@ -66,10 +66,10 @@ public class PathfindCommand {
             return 0;
         }
 
+        source.sendFeedback(() -> Text.literal("Path found! Distance: " + path.size() + " blocks"), false);
+
         // Visualize the path
         PathVisualizer.showPath(serverWorld, world, path, player);
-
-        source.sendFeedback(() -> Text.literal("Path found! Distance: " + path.size() + " blocks"), false);
         return 1;
     }
 }
