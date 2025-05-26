@@ -16,6 +16,8 @@ import net.minecraft.world.World;
 import java.util.List;
 import java.util.Objects;
 
+import static dev.rafiattaa.commands.PathVisualizer.clearPlayerPath;
+
 
 public class PathfindCommand {
 

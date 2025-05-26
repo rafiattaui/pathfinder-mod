@@ -1,5 +1,6 @@
 package dev.rafiattaa.algorithms;
 
+import dev.rafiattaa.Pathfinder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -69,15 +70,32 @@ public class PathfindingAlgorithm {
     private List<BlockPos> getNeighbors(BlockPos pos) {
         List<BlockPos> neighbors = new ArrayList<>();
 
-        // 8 horizontal directions + up/down (6 directions for directly above/below and beside it)
-        int[][] directions = {
-                {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1},
-                {1, 0, 1}, {-1, 0, 1}, {1, 0, -1}, {-1, 0, -1},
-                {0, 1, 0}, {0, -1, 0}, {0, 1, 1}, {0, -1, 1}, {1, 1, 0}, {-1, 1, 0}
-        };
+        HashMap<String, int[]> directions = new HashMap<>();
 
-        for (int[] dir : directions) {
+        directions.put("east", new int[]{1, 0, 0});
+        directions.put("west", new int[]{-1, 0, 0});
+        directions.put("south", new int[]{0, 0, 1});
+        directions.put("north", new int[]{0, 0, -1});
+        directions.put("southeast", new int[]{1, 0, 1});
+        directions.put("southwest", new int[]{-1, 0, 1});
+        directions.put("northeast", new int[]{1, 0, -1});
+        directions.put("northwest", new int[]{-1, 0, -1});
+        directions.put("up", new int[]{0, 1, 0});
+        directions.put("down", new int[]{0, -1, 0});
+        directions.put("east_up", new int[]{1, 1, 0});
+        directions.put("west_up", new int[]{-1, 1, 0});
+        directions.put("south_up", new int[]{0, 1, 1});
+        directions.put("north_up", new int[]{0, 1, -1});
+        directions.put("east_down", new int[]{1, -1, 0});
+        directions.put("west_down", new int[]{-1, -1, 0});
+        directions.put("south_down", new int[]{0, -1, 1});
+        directions.put("north_down", new int[]{0, -1, -1});
+
+        for (Map.Entry<String, int[]> entry : directions.entrySet()) {
+            String direction = entry.getKey();
+            int[] dir = entry.getValue();
             neighbors.add(pos.add(dir[0], dir[1], dir[2]));
+            Pathfinder.LOGGER.info("Checking " + direction);
         }
 
         return neighbors;
@@ -106,7 +124,7 @@ public class PathfindingAlgorithm {
         BlockState blockBelow = world.getBlockState(to.down()); // Get the block below the target position
         Block block = blockBelow.getBlock(); // what kind of block is it?
 
-        if (block == Blocks.WATER || block == Blocks.LAVA) {
+        if (block == Blocks.WATER) {
             cost += 5.0; // Avoid liquids
         } else if (block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL) {
             cost += 2.0; // Soul blocks slow movement
@@ -114,6 +132,8 @@ public class PathfindingAlgorithm {
             cost += 3.0; // Honey blocks are sticky
         } else if (block == Blocks.ICE || block == Blocks.PACKED_ICE) {
             cost += 1.5; // Ice is slippery
+        } else if (block == Blocks.LAVA) {
+            cost += Double.MAX_VALUE;
         }
 
         return cost;

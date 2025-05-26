@@ -5,7 +5,6 @@ import dev.rafiattaa.Pathfinder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -13,9 +12,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,11 +21,13 @@ public class PathVisualizer {
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final Map<BlockPos, BlockState> originalBlocks = new HashMap<>();
-    private static List<BlockPos> path;
+    private static Deque<List<BlockPos>> paths = new ArrayDeque<>();
 
-    public static void showPath(ServerWorld serverWorld, World world, List<BlockPos> path, ServerPlayerEntity player) {
-        PathVisualizer.path = path;
-        placePath(serverWorld, world, path, player);
+    public static void showPath(ServerWorld serverWorld, World world, List<BlockPos> newPath, ServerPlayerEntity player) {
+        PathVisualizer.paths.add(newPath);
+        List<BlockPos> currPath = PathVisualizer.paths.peekLast();
+        assert currPath != null;
+        placePath(serverWorld, world, currPath, player);
 
         // Schedule automatic cleanup
         scheduler.schedule(() -> {
@@ -102,22 +101,24 @@ public class PathVisualizer {
     }
 
     public static void clearPlayerPath(ServerWorld world) {
-        if (path == null) return;
+        if (paths.isEmpty()) return;
 
         // Restore original blocks
-        for (BlockPos pathPos : path) {
-            // Check multiple positions where we might have placed blocks
-            for (int yOffset = -3; yOffset <= 2; yOffset++) {
-                BlockPos checkPos = new BlockPos(pathPos.getX(), pathPos.getY() + yOffset, pathPos.getZ());
+        for (List<BlockPos> path : paths) {
+            for (BlockPos pathPos : path) {
+                // Check multiple positions where we might have placed blocks
+                for (int yOffset = -3; yOffset <= 2; yOffset++) {
+                    BlockPos checkPos = new BlockPos(pathPos.getX(), pathPos.getY() + yOffset, pathPos.getZ());
 
-                if (originalBlocks.containsKey(checkPos)) {
-                    BlockState originalState = originalBlocks.get(checkPos);
-                    world.setBlockState(checkPos, originalState);
-                    originalBlocks.remove(checkPos);
+                    if (originalBlocks.containsKey(checkPos)) {
+                        BlockState originalState = originalBlocks.get(checkPos);
+                        world.setBlockState(checkPos, originalState);
+                        originalBlocks.remove(checkPos);
+                    }
                 }
             }
         }
-        path = null;
+        paths.clear();
     }
 
 
