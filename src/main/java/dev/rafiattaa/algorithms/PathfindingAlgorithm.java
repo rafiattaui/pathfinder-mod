@@ -69,11 +69,11 @@ public class PathfindingAlgorithm {
     private List<BlockPos> getNeighbors(BlockPos pos) {
         List<BlockPos> neighbors = new ArrayList<>();
 
-        // 8 horizontal directions + up/down
+        // 8 horizontal directions + up/down (6 directions for directly above/below and beside it)
         int[][] directions = {
                 {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1},
                 {1, 0, 1}, {-1, 0, 1}, {1, 0, -1}, {-1, 0, -1},
-                {0, 1, 0}, {0, -1, 0}
+                {0, 1, 0}, {0, -1, 0}, {0, 1, 1}, {0, -1, 1}, {1, 1, 0}, {-1, 1, 0}
         };
 
         for (int[] dir : directions) {
