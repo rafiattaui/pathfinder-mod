@@ -166,7 +166,7 @@ public class PathfindingAlgorithm {
             return canMoveVertically(from, to, heightDiff);
         } else {
             // Horizontal movement on same level
-            return canMoveHorizontally(from, to);
+            return canMoveHorizontally(to);
         }
     }
 
@@ -208,7 +208,7 @@ public class PathfindingAlgorithm {
         return true;
     }
 
-    private boolean canMoveHorizontally(BlockPos from, BlockPos to) {
+    private boolean canMoveHorizontally(BlockPos to) {
         // Same level horizontal movement - just check passability
         return isStandablePosition(to);
     }
