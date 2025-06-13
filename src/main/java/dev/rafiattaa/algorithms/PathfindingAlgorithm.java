@@ -69,15 +69,33 @@ public class PathfindingAlgorithm {
     private List<BlockPos> getNeighbors(BlockPos pos) {
         List<BlockPos> neighbors = new ArrayList<>();
 
-        // 8 horizontal directions + up/down
-        int[][] directions = {
-                {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1},
-                {1, 0, 1}, {-1, 0, 1}, {1, 0, -1}, {-1, 0, -1},
-                {0, 1, 0}, {0, -1, 0}
-        };
+        // Cardinal directions (horizontal only)
+        int[][] cardinal = {{1,0,0}, {-1,0,0}, {0,0,1}, {0,0,-1}};
+        // Diagonal directions (horizontal only)
+        int[][] diagonal = {{1,0,1}, {-1,0,1}, {1,0,-1}, {-1,0,-1}};
 
-        for (int[] dir : directions) {
+        // Add horizontal movements
+        for (int[] dir : cardinal) {
             neighbors.add(pos.add(dir[0], dir[1], dir[2]));
+        }
+        for (int[] dir : diagonal) {
+            neighbors.add(pos.add(dir[0], dir[1], dir[2]));
+        }
+
+        // Add simple vertical movements (straight up/down only)
+        neighbors.add(pos.up());
+        neighbors.add(pos.down());
+
+        // Add step-up movements (1 block up + horizontal)
+        for (int[] dir : cardinal) {
+            neighbors.add(pos.add(dir[0], 1, dir[2]));
+        }
+
+        // Add step-down movements (1-3 blocks down + horizontal)
+        for (int[] dir : cardinal) {
+            for (int dropHeight = 1; dropHeight <= 3; dropHeight++) {
+                neighbors.add(pos.add(dir[0], -dropHeight, dir[2]));
+            }
         }
 
         return neighbors;
@@ -85,7 +103,7 @@ public class PathfindingAlgorithm {
 
     private double getMovementCost(BlockPos from, BlockPos to) {
         // Check if the target position is passable
-        if (!isPassable(to)) { // Can't go there
+        if (!canMoveTo(from, to)) { // Can't go there
             return Double.MAX_VALUE; // Infinite cost
         }
 
@@ -98,15 +116,18 @@ public class PathfindingAlgorithm {
         }
 
         // Vertical movement penalty
-        if (from.getY() != to.getY()) {
-            cost += Math.abs(to.getY() - from.getY()) * 2.0;
+        int diff = to.getY() - from.getY();
+        if (diff > 0) {
+            cost += diff * 2.0; // going up
+        } else if (diff < 0) {
+            cost += Math.abs(diff) * 1.5; // going down (lower cost)
         }
 
         // Block type penalties
         BlockState blockBelow = world.getBlockState(to.down()); // Get the block below the target position
         Block block = blockBelow.getBlock(); // what kind of block is it?
 
-        if (block == Blocks.WATER || block == Blocks.LAVA) {
+        if (block == Blocks.WATER) {
             cost += 5.0; // Avoid liquids
         } else if (block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL) {
             cost += 2.0; // Soul blocks slow movement
@@ -114,19 +135,113 @@ public class PathfindingAlgorithm {
             cost += 3.0; // Honey blocks are sticky
         } else if (block == Blocks.ICE || block == Blocks.PACKED_ICE) {
             cost += 1.5; // Ice is slippery
+        } else if (block == Blocks.LAVA) {
+            cost += Double.MAX_VALUE;
         }
 
         return cost;
     }
 
-    private boolean isPassable(BlockPos pos) {
-        // Check if player can fit (2 blocks high)
-        BlockState state1 = world.getBlockState(pos);
-        BlockState state2 = world.getBlockState(pos.up());
+    private boolean canMoveTo(BlockPos from, BlockPos to) {
+        if (!isStandablePosition(to)) {
+            return false;
+        }
 
-        // Both blocks must be passable
-        return isBlockPassable(state1) && isBlockPassable(state2) &&
-                hasFloorSupport(pos.down());
+        int heightDiff = to.getY() - from.getY();
+
+        // Strict height constraints
+        if (heightDiff > 1 || heightDiff < -3) {
+            return false;
+        }
+
+        // Check movement type
+        if (isDiagonalMove(from, to)) {
+            // Diagonal movement only allowed on same level
+            if (heightDiff != 0) {
+                return false;
+            }
+            return canMoveDiagonally(from, to);
+        } else if (heightDiff != 0) {
+            // Vertical movement
+            return canMoveVertically(from, to, heightDiff);
+        } else {
+            // Horizontal movement on same level
+            return canMoveHorizontally(to);
+        }
+    }
+
+    private boolean canMoveVertically(BlockPos from, BlockPos to, int heightDiff) {
+        if (heightDiff > 0) {
+            // Moving up - check step up
+            return canStepUp(from, to);
+        } else {
+            // Moving down - check fall
+            return canFallDown(from, to, Math.abs(heightDiff));
+        }
+    }
+
+    private boolean canStepUp(BlockPos from, BlockPos to) {
+        // Only allow 1 block step up
+        if (to.getY() - from.getY() != 1) {
+            return false;
+        }
+
+        // Check if there's clearance for the step
+        BlockPos stepPos = new BlockPos(to.getX(), from.getY() + 1, to.getZ());
+        return isBlockPassable(world.getBlockState(stepPos)) &&
+                isBlockPassable(world.getBlockState(stepPos.up()));
+    }
+
+    private boolean canFallDown(BlockPos from, BlockPos to, int fallDistance) {
+        if (fallDistance > 3) {
+            return false;
+        }
+
+        // Check that all blocks in the fall path are passable
+        for (int y = from.getY(); y > to.getY(); y--) {
+            BlockPos checkPos = new BlockPos(to.getX(), y, to.getZ());
+            if (!isBlockPassable(world.getBlockState(checkPos))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean canMoveHorizontally(BlockPos to) {
+        // Same level horizontal movement - just check passability
+        return isStandablePosition(to);
+    }
+
+    private boolean isDiagonalMove(BlockPos from, BlockPos to) {
+        return from.getX() != to.getX() && from.getZ() != to.getZ();
+    }
+
+    private boolean canMoveDiagonally(BlockPos from, BlockPos to) {
+        // Only allow diagonal movement on same Y level
+        if (from.getY() != to.getY()) {
+            return false;
+        }
+
+        // Check both intermediate positions to prevent corner cutting
+        BlockPos inter1 = new BlockPos(to.getX(), from.getY(), from.getZ());
+        BlockPos inter2 = new BlockPos(from.getX(), from.getY(), to.getZ());
+
+        // At least one path must be valid
+        boolean path1Valid = isStandablePosition(inter1);
+        boolean path2Valid = isStandablePosition(inter2);
+
+        return path1Valid || path2Valid;
+    }
+
+    private boolean isStandablePosition(BlockPos pos) {
+        BlockState floorState = world.getBlockState(pos.down());
+        BlockState bodyState = world.getBlockState(pos);
+        BlockState headState = world.getBlockState(pos.up());
+
+        return isSolidFloor(floorState) &&
+                isBlockPassable(bodyState) &&
+                isBlockPassable(headState);
     }
 
     private boolean isBlockPassable(BlockState state) {
@@ -138,17 +253,21 @@ public class PathfindingAlgorithm {
         }
 
         // Some specific passable blocks
-        return block == Blocks.WATER || block == Blocks.TALL_GRASS ||
-                block == Blocks.GRASS_BLOCK || block == Blocks.FERN ||
+        return block == Blocks.WATER || block == Blocks.TALL_GRASS || block == Blocks.FERN ||
                 block == Blocks.DEAD_BUSH || block == Blocks.SNOW;
     }
 
-    private boolean hasFloorSupport(BlockPos pos) {
-        BlockState state = world.getBlockState(pos);
+    private boolean isSolidFloor(BlockState state) {
         Block block = state.getBlock();
 
-        // Can't walk on air or liquids (unless it's a valid liquid floor)
-        return block != Blocks.AIR && block != Blocks.CAVE_AIR && block != Blocks.VOID_AIR;// Most blocks can be walked on
+        // Air and liquids are not solid floors
+        if (block == Blocks.AIR || block == Blocks.CAVE_AIR || block == Blocks.VOID_AIR ||
+                block == Blocks.WATER || block == Blocks.LAVA) {
+            return false;
+        }
+
+        // Most other blocks can be walked on
+        return true;
     }
 
     private double heuristic(BlockPos a, BlockPos b) {

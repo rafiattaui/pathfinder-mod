@@ -11,10 +11,12 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 import java.util.List;
 import java.util.Objects;
+
 
 
 public class PathfindCommand {
@@ -41,12 +43,10 @@ public class PathfindCommand {
             return 0;
         }
 
-        int targetX = (int) Vec3ArgumentType.getVec3(context, "destination").getX();
-        int targetY = (int) Vec3ArgumentType.getVec3(context, "destination").getY();
-        int targetZ = (int) Vec3ArgumentType.getVec3(context, "destination").getZ();
+        Vec3d targetVec = Vec3ArgumentType.getVec3(context, "destination");
+        BlockPos target = BlockPos.ofFloored(targetVec);
 
         BlockPos start = player.getBlockPos();
-        BlockPos target = new BlockPos(targetX, targetY, targetZ);
         World world = player.getWorld();
         ServerWorld serverWorld = Objects.requireNonNull(world.getServer()).getWorld(World.OVERWORLD);
 
@@ -64,10 +64,10 @@ public class PathfindCommand {
             return 0;
         }
 
+        source.sendFeedback(() -> Text.literal("Path found! Distance: " + path.size() + " blocks"), false);
+
         // Visualize the path
         PathVisualizer.showPath(serverWorld, world, path, player);
-
-        source.sendFeedback(() -> Text.literal("Path found! Distance: " + path.size() + " blocks"), false);
         return 1;
     }
 }
