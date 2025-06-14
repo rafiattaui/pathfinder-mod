@@ -134,7 +134,7 @@ public class PathfindingAlgorithm {
         } else if (block == Blocks.HONEY_BLOCK) {
             cost += 3.0; // Honey blocks are sticky
         } else if (block == Blocks.ICE || block == Blocks.PACKED_ICE) {
-            cost += 1.5; // Ice is slippery
+            cost += 0.5; // Ice is slippery
         } else if (block == Blocks.LAVA) {
             cost += Double.MAX_VALUE;
         }
