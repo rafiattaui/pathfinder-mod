@@ -116,12 +116,12 @@ public class PathfindingAlgorithm {
         }
 
         // Vertical movement penalty
-        int diff = to.getY() - from.getY();
-        if (diff > 0) {
-            cost += diff * 2.0; // going up
-        } else if (diff < 0) {
-            cost += Math.abs(diff) * 1.5; // going down (lower cost)
-        }
+//        int diff = to.getY() - from.getY();
+//        if (diff > 0) {
+//            cost += diff * 2.0; // going up
+//        } else if (diff < 0) {
+//            cost += Math.abs(diff) * 1.5; // going down (lower cost)
+//        }
 
         // Block type penalties
         BlockState blockBelow = world.getBlockState(to.down()); // Get the block below the target position
@@ -131,8 +131,8 @@ public class PathfindingAlgorithm {
             cost += 5.0; // Avoid liquids
         } else if (block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL) {
             cost += 2.0; // Soul blocks slow movement
-        } else if (block == Blocks.HONEY_BLOCK) {
-            cost += 3.0; // Honey blocks are sticky
+        } else if (block == Blocks.HONEY_BLOCK || block == Blocks.SLIME_BLOCK) {
+            cost += 3.0; // Honey and slime blocks are sticky
         } else if (block == Blocks.ICE || block == Blocks.PACKED_ICE) {
             cost += 0.5; // Ice is slippery
         } else if (block == Blocks.LAVA) {
